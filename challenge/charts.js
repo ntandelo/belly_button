@@ -17,6 +17,7 @@ function init() {
     var firstSample = sampleNames[0];
     buildCharts(firstSample);
     buildMetadata(firstSample);
+    halfCircle(firstSample);
   });
 }
 
@@ -25,9 +26,12 @@ init();
 
 function optionChanged(newSample) {
   // Fetch new data each time a new sample is selected
+  console.log("Building metadata");
   buildMetadata(newSample);
+  console.log("Building charts");
   buildCharts(newSample);
-  
+  console.log("Building half circle");
+  halfCircle(newSample);
 }
 
 // Demographics Panel 
@@ -62,38 +66,105 @@ function buildCharts(sample) {
 
     console.log(data);
     // 3. Create a variable that holds the samples array. 
-    var sampleArray = data.samples; 
+    var sampleArray = data.samples;
     // 4. Create a variable that filters the samples for the object with the desired sample number.
     var sampleFilter = sampleArray.filter(sampleObj => sampleObj.id == sample);
     //  5. Create a variable that holds the first sample in the array.
 
     var sampleResults = sampleFilter[0];
+    console.log("Sample Results: ", sampleResults)
     // 6. Create variables that hold the otu_ids, otu_labels, and sample_values.
 
-    var PANEL2 = d3.select('#sample-otu_ids');
-    var PANEL3 = d3.select('#sample-otu_labels');
-    var PANEL4 = d3.select('#sample-sample_values');
+    var otu_ids = sampleResults.otu_ids;
+    var otu_labels = sampleResults.otu_labels;
+    var sample_values = sampleResults.sample_values;
 
     // 7. Create the yticks for the bar chart.
     // Hint: Get the the top 10 otu_ids and map them in descending order  
     //  so the otu_ids with the most bacteria are last. 
-
-    var yticks = PANEL2.map(bacteria=>bacteria.PANEL2).slice(0,10).reverse()
+    // debugger;
+    var yticks = otu_ids.slice(0, 10).reverse().map(ID => "OTU " + ID);
 
     // 8. Create the trace for the bar chart. 
     var barData = {
-      x: PANEL4,
+      x: sample_values.slice(0, 10).reverse(),
       y: yticks,
       type: "bar",
-      
+      orientation: 'h'
+
     };
+    console.log("bar data info:", barData);
 
     var trace = [barData];
     // 9. Create the layout for the bar chart. 
-    // var barLayout = {
-     
-    // };
+    var barLayout = {
+      title: "Top 10 Bacteria Cultures Found",
+
+    };
     // 10. Use Plotly to plot the data with the layout. 
-    
+    Plotly.newPlot("bar-plot", trace, barLayout);
+    // 1. Create the trace for the bubble chart.
+    bubbleTrace = {
+      x: otu_ids,
+      y: sample_values,
+      text: otu_labels,
+      mode: 'markers',
+      marker: {
+        size: sample_values,
+        color: otu_ids,
+      }
+    }
+
+    var bubbleData = [bubbleTrace];
+
+    // 2. Create the layout for the bubble chart.
+    var bubbleLayout = {
+      title: 'Bacteria Cultures Per Sample',
+      showlegend: false,
+      xaxis: { title: "OTU IDs" },
+    };
+
+    // 3. Use Plotly to plot the data with the layout.
+    Plotly.newPlot("bubble-plot", bubbleData, bubbleLayout);
+
   });
 }
+function halfCircle(sample) {
+  d3.json("samples.json").then((data) => {
+
+    console.log(data);
+    // 3. Create a variable that holds the samples array. 
+    var sampleArray = data.metadata;
+    // 4. Create a variable that filters the samples for the object with the desired sample number.
+    var sampleFilter = sampleArray.filter(sampleObj => sampleObj.id == sample);
+    //  5. Create a variable that holds the first sample in the array.
+
+    var sampleResults = sampleFilter[0];
+    console.log("Half Circle Results: ", sampleResults)
+
+    var data = [
+      {
+        gauge: {
+          axis: { range: [0, 10.0] },
+          steps: [
+            { range: [0, 2], color: "red" },
+            { range: [2, 4], color: "orange" },
+            { range: [4, 6], color: "yellow" },
+            { range: [6, 8], color: "LightGreen" },
+            { range: [8, 10], color: "green" }
+          ],
+          bar: { color: "black" },
+        },
+        value: sampleResults.wfreq,
+        title: { text: "Wash Frequency" },
+        type: "indicator",
+        mode: "gauge+number",
+
+      }
+    ];
+    console.log("half circle data", data);
+    var layout = {  margin: { t: 0, b: 0 }, paper_bgcolor: "lavender", 
+  };
+    Plotly.newPlot('halfcircle-plot', data, layout);
+  })
+};
